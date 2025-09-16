@@ -1,0 +1,60 @@
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  margin: 0;
+  overflow: hidden;
+  font-family: 'Trebuchet MS', Arial, sans-serif;
+  color: #f5d76e;
+  background: linear-gradient(180deg, #2a1a1f 0%, #050505 50%, #04040a 100%);
+}
+
+#ui {
+  position: fixed;
+  top: 16px;
+  left: 16px;
+  right: 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  pointer-events: none;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.75);
+}
+
+#player-info {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  font-size: 18px;
+}
+
+.label {
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+#health {
+  display: flex;
+  gap: 6px;
+}
+
+.health-dot {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 30% 30%, #fff9a8, #f2c230 65%, #8b6f09 100%);
+  box-shadow: 0 0 6px rgba(255, 223, 50, 0.8);
+}
+
+#enemy-counter {
+  font-size: 18px;
+}
+
+#game {
+  width: 100vw;
+  height: 100vh;
+  display: block;
+}
