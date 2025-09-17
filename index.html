@@ -9,13 +9,39 @@
   <body>
     <div id="ui">
       <div id="player-info">
-        <span class="label">Ali Baba</span>
-        <span id="health"></span>
+        <span id="player-name" class="label">Ali Baba</span>
+        <div id="health" class="health-bar">
+          <div class="health-bar-track">
+            <div class="health-bar-fill"></div>
+          </div>
+          <span class="health-bar-text">20 / 20</span>
+        </div>
       </div>
-      <div id="enemy-counter">0 / 40</div>
+      <div id="enemy-counter">Players online: 0 • HP: 20/20 • K:0 D:0</div>
     </div>
+
+    <div id="join-overlay" class="overlay">
+      <div class="overlay-card">
+        <h1>Join the Caravan</h1>
+        <p>Tell us your name so other heroes can spot you.</p>
+        <form id="join-form">
+          <input
+            id="join-name"
+            type="text"
+            name="name"
+            maxlength="20"
+            autocomplete="name"
+            placeholder="Enter your hero name"
+            required
+          />
+          <button type="submit">Enter the Cave</button>
+        </form>
+      </div>
+    </div>
+
     <canvas id="game"></canvas>
 
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js" crossorigin="anonymous"></script>
     <script type="module" src="main.js"></script>
   </body>
 </html>
