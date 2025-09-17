@@ -11,6 +11,9 @@ const joinOverlay = document.getElementById('join-overlay');
 const joinForm = document.getElementById('join-form');
 const joinNameInput = document.getElementById('join-name');
 const playerNameLabel = document.getElementById('player-name');
+const characterOptionButtons = Array.from(
+  document.querySelectorAll('[data-character-option][data-character]'),
+);
 
 const messageEl = document.createElement('div');
 messageEl.style.position = 'fixed';
@@ -37,11 +40,28 @@ export const ui = {
   joinNameInput,
   playerNameLabel,
   messageEl,
+  characterOptions: characterOptionButtons,
 };
+
+const characterSprites = {
+  aliBaba: 'assets/alibaba_sprite.png',
+  sinbad: 'assets/sinbadsprite.png',
+};
+
+export const CHARACTER_IDS = Object.keys(characterSprites);
+const CHARACTER_ID_SET = new Set(CHARACTER_IDS);
+export const DEFAULT_CHARACTER = CHARACTER_IDS[0];
+
+export function normalizeCharacter(value) {
+  if (typeof value === 'string' && CHARACTER_ID_SET.has(value)) {
+    return value;
+  }
+  return DEFAULT_CHARACTER;
+}
 
 export const assetSources = {
   background: 'assets/cave-background.png',
-  aliBaba: 'assets/alibaba_sprite.png',
+  ...characterSprites,
 };
 
 export const images = {};
@@ -111,6 +131,7 @@ export const player = {
   dashTrailTimer: 0,
   dashTrailInterval: DASH_TRAIL_INTERVAL,
   hitFlash: 0,
+  character: DEFAULT_CHARACTER,
 };
 
 export const camera = { x: 0, y: 0 };

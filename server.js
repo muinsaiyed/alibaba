@@ -41,6 +41,9 @@ const availableColors = [...basePalette];
 const players = new Map();
 const nameRegistry = new Set();
 
+const DEFAULT_CHARACTER = 'aliBaba';
+const ALLOWED_CHARACTERS = new Set([DEFAULT_CHARACTER, 'sinbad']);
+
 const MAIN_ROOM = 'main';
 
 const RESPAWN_DELAY_MS = 3200;
@@ -84,6 +87,7 @@ function sanitizePlayerState(player) {
     id: player.id,
     name: player.name,
     color: player.color,
+    character: player.character,
     x: player.x,
     y: player.y,
     facing: player.facing,
@@ -132,6 +136,7 @@ function scheduleRespawn(player) {
         maxHealth: player.maxHealth,
         kills: player.kills,
         deaths: player.deaths,
+        character: player.character,
       });
       socketInstance.to(MAIN_ROOM).emit('player:respawned', sanitizePlayerState(player));
     }
@@ -242,6 +247,14 @@ function normalizeName(name) {
   return typeof name === 'string' ? name.trim().toLowerCase() : '';
 }
 
+function normalizeCharacter(character) {
+  if (typeof character !== 'string') {
+    return DEFAULT_CHARACTER;
+  }
+  const trimmed = character.trim();
+  return ALLOWED_CHARACTERS.has(trimmed) ? trimmed : DEFAULT_CHARACTER;
+}
+
 function claimName(name) {
   const key = normalizeName(name);
   if (!key) {
@@ -298,11 +311,13 @@ io.on('connection', (socket) => {
 
     const color = assignColor();
     const spawn = getSpawnPoint();
+    const character = normalizeCharacter(payload?.character);
 
     const state = {
       id: socket.id,
       name: claimedName,
       color,
+      character,
       x: spawn.x,
       y: spawn.y,
       facing: 1,
@@ -327,6 +342,7 @@ io.on('connection', (socket) => {
         id: socket.id,
         name: state.name,
         color,
+        character: state.character,
         x: state.x,
         y: state.y,
         health: state.health,
@@ -373,6 +389,7 @@ io.on('connection', (socket) => {
         y: player.y,
         facing: player.facing,
         anim: player.anim,
+        character: player.character,
       });
     }
   });

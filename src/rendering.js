@@ -1,11 +1,21 @@
-import { camera, ctx, dashTrails, images, player, remotePlayers, fireballs, view } from './state.js';
+import { camera, ctx, dashTrails, images, player, remotePlayers, fireballs, view, DEFAULT_CHARACTER } from './state.js';
 import { HIT_FLASH_DURATION, WORLD, backgroundConfig, platforms } from './constants.js';
+
+function getCharacterSprite(character) {
+  if (typeof character === 'string' && images[character]) {
+    return images[character];
+  }
+  return images[DEFAULT_CHARACTER] ?? null;
+}
 
 export function render() {
   const bg = images.background;
-  const hero = images.aliBaba;
+  if (!bg) {
+    return;
+  }
 
-  if (!bg || !hero) {
+  const localSprite = getCharacterSprite(player.character);
+  if (!localSprite) {
     return;
   }
 
@@ -22,7 +32,11 @@ export function render() {
   renderDashTrails();
 
   for (const remote of remotePlayers.values()) {
-    renderHero(hero, remote, {
+    const remoteSprite = getCharacterSprite(remote.character);
+    if (!remoteSprite) {
+      continue;
+    }
+    renderHero(remoteSprite, remote, {
       color: remote.color,
       name: remote.name,
       opacity: remote.alive ? 0.95 : 0.3,
@@ -33,7 +47,7 @@ export function render() {
     });
   }
 
-  renderHero(hero, player, {
+  renderHero(localSprite, player, {
     color: player.color,
     name: player.displayName,
     opacity: player.alive ? (player.invuln > 0 ? 0.6 : 1) : 0.4,
@@ -54,12 +68,11 @@ function renderDashTrails() {
     return;
   }
 
-  const sprite = images.aliBaba;
-  if (!sprite) {
-    return;
-  }
-
   for (const trail of dashTrails) {
+    const sprite = getCharacterSprite(trail.character);
+    if (!sprite) {
+      continue;
+    }
     const progress = Math.max(0, Math.min(1, trail.life / trail.maxLife));
     const alpha = Math.max(0, Math.min(1, (trail.opacity ?? 0.6) * progress));
     if (alpha <= 0.01) {

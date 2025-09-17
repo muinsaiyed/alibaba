@@ -1,4 +1,4 @@
-import { network, player, remotePlayers } from './state.js';
+import { network, normalizeCharacter, player, remotePlayers } from './state.js';
 import { DASH_TRAIL_INTERVAL, REMOTE_SMOOTHING_RATE, WORLD } from './constants.js';
 import { clamp } from './utils.js';
 import { handleRemoteDashTrail } from './dashTrails.js';
@@ -54,6 +54,7 @@ export function registerRemotePlayer(data = {}) {
       ? data.name.trim()
       : previous?.name || 'Ally',
     color: data.color || previous?.color || '#66ffcc',
+    character: previous?.character ?? normalizeCharacter(data.character),
     x: previous?.x ?? incomingX,
     y: previous?.y ?? incomingY,
     targetX: incomingX,

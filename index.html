@@ -23,8 +23,34 @@
     <div id="join-overlay" class="overlay">
       <div class="overlay-card">
         <h1>Join the Caravan</h1>
-        <p>Tell us your name so other heroes can spot you.</p>
+        <p>Pick your hero and share your name so other adventurers can spot you.</p>
         <form id="join-form">
+          <div
+            class="character-select"
+            role="group"
+            aria-label="Choose your hero"
+          >
+            <button
+              type="button"
+              class="character-option"
+              data-character-option
+              data-character="aliBaba"
+              aria-pressed="false"
+            >
+              <img src="assets/alibaba_sprite.png" alt="" aria-hidden="true" />
+              <span class="character-option-name">Ali Baba</span>
+            </button>
+            <button
+              type="button"
+              class="character-option"
+              data-character-option
+              data-character="sinbad"
+              aria-pressed="false"
+            >
+              <img src="assets/sinbadsprite.png" alt="" aria-hidden="true" />
+              <span class="character-option-name">Sinbad</span>
+            </button>
+          </div>
           <input
             id="join-name"
             type="text"

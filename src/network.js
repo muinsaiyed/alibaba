@@ -1,10 +1,19 @@
 import { addFireball } from './projectiles.js';
 import { playEnemyDeathSound, playFireballSound } from './audio.js';
 import { determinePlayerAnim, resetDashTimers } from './player.js';
-import { dashTrails, fireballs, input, network, player, remotePlayers, ui } from './state.js';
+import {
+  dashTrails,
+  fireballs,
+  input,
+  network,
+  normalizeCharacter,
+  player,
+  remotePlayers,
+  ui,
+} from './state.js';
 import { DASH_TRAIL_INTERVAL, HIT_FLASH_DURATION, NETWORK_SEND_INTERVAL, SOCKET_URL } from './constants.js';
 import { clearRemotePlayers, getPlayerName, registerRemotePlayer, removeRemotePlayer } from './remotePlayers.js';
-import { hideMessage, showMessage, updateEnemyCounter, updateHealthUI } from './ui.js';
+import { hideMessage, showMessage, syncCharacterSelection, updateEnemyCounter, updateHealthUI } from './ui.js';
 
 export function initNetwork() {
   if (ui.joinForm) {
@@ -139,6 +148,9 @@ function handleJoinSubmit(event) {
     network.localPlayerId = response.id;
     player.displayName = response.name || name;
     player.color = response.color || player.color;
+    const joinedCharacter = normalizeCharacter(response.character);
+    player.character = joinedCharacter;
+    syncCharacterSelection(joinedCharacter);
     if (ui.playerNameLabel) {
       ui.playerNameLabel.textContent = player.displayName;
     }
@@ -181,7 +193,7 @@ function handleJoinSubmit(event) {
     sendPlayerSnapshot(true);
   };
 
-  network.pendingJoinPayload = { name, x: player.x, y: player.y };
+  network.pendingJoinPayload = { name, x: player.x, y: player.y, character: player.character };
   network.pendingJoinCallback = completeJoin;
   network.pendingJoinTimeout = setTimeout(() => {
     if (!network.joinInFlight || network.pendingJoinCallback !== completeJoin) {
@@ -275,6 +287,9 @@ function onPlayerUpdated(data) {
   if (data.facing === -1 || data.facing === 1) {
     remote.facing = data.facing;
   }
+  if (typeof data.character === 'string') {
+    remote.character = normalizeCharacter(data.character);
+  }
   const previousAnim = remote.anim;
   if (typeof data.anim === 'string') {
     remote.anim = data.anim;
@@ -337,6 +352,9 @@ function onPlayerState(data = {}) {
   remote.alive = typeof data.alive === 'boolean' ? data.alive : remote.alive;
   remote.kills = typeof data.kills === 'number' ? data.kills : remote.kills;
   remote.deaths = typeof data.deaths === 'number' ? data.deaths : remote.deaths;
+  if (typeof data.character === 'string') {
+    remote.character = normalizeCharacter(data.character);
+  }
   if (Number.isFinite(data.x)) {
     remote.targetX = data.x;
     if (!remote.alive) {
@@ -483,6 +501,7 @@ export function returnToLobby({ message, autoHide = true } = {}) {
   fireballs.length = 0;
   updateEnemyCounter();
   updateHealthUI();
+  syncCharacterSelection(player.character);
 
   if (ui.joinOverlay) {
     ui.joinOverlay.classList.remove('overlay-hidden');
@@ -524,6 +543,13 @@ function applyLocalStateUpdate(data) {
   }
   if (typeof data.anim === 'string') {
     player.anim = data.anim;
+  }
+  if (typeof data.character === 'string') {
+    const normalized = normalizeCharacter(data.character);
+    if (player.character !== normalized) {
+      player.character = normalized;
+      syncCharacterSelection(normalized);
+    }
   }
 
   if (typeof data.health === 'number') {

@@ -21,6 +21,7 @@ export function spawnDashTrail(source, options = {}) {
     life: DASH_TRAIL_LIFETIME,
     maxLife: DASH_TRAIL_LIFETIME,
     opacity: typeof options.opacity === 'number' ? options.opacity : 0.65,
+    character: source.character,
   });
 }
 
