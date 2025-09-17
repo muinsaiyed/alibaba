@@ -1,11 +1,23 @@
 import { fireballs, input, network, player, pointer, remotePlayers } from './state.js';
-import { FIREBALL_LIFETIME, HIT_FLASH_DURATION, WORLD } from './constants.js';
-import { platforms } from './constants.js';
+import {
+  FIREBALL_LIFETIME,
+  HIT_FLASH_DURATION,
+  SINBAD_ATTACK_DURATION,
+  SINBAD_WAVE_HEIGHT,
+  SINBAD_WAVE_LIFETIME,
+  SINBAD_WAVE_SPEED,
+  SINBAD_WAVE_WIDTH,
+  WORLD,
+  platforms,
+} from './constants.js';
 import { playFireballSound } from './audio.js';
 import { predictCameraPosition, recalcPointerWorld } from './viewport.js';
 import { getRect, rectIntersect } from './utils.js';
 
-export function handlePlayerFireball(delta) {
+const DEFAULT_FIRE_COOLDOWN = 0.45;
+const SINBAD_FIRE_COOLDOWN = 0.56;
+
+export function handlePlayerAttack(delta) {
   if (player.fireCooldown > 0) {
     player.fireCooldown = Math.max(0, player.fireCooldown - delta);
   }
@@ -38,13 +50,44 @@ export function handlePlayerFireball(delta) {
   player.facing = targetX >= centerX ? 1 : -1;
 
   const angle = Math.atan2(targetY - centerY, targetX - centerX);
+  const isSinbad = player.character === 'sinbad';
+  const projectile = isSinbad
+    ? createSinbadWave(centerX, centerY, angle)
+    : createStandardFireball(centerX, centerY, angle);
+
+  addFireball(projectile);
+
+  if (network.socket) {
+    network.socket.emit('player:shoot', {
+      x: projectile.x,
+      y: projectile.y,
+      vx: projectile.vx,
+      vy: projectile.vy,
+      width: projectile.width,
+      height: projectile.height,
+      damage: projectile.damage,
+      lifetime: projectile.lifetime,
+      type: projectile.type,
+    });
+  }
+
+  player.fireCooldown = isSinbad ? SINBAD_FIRE_COOLDOWN : DEFAULT_FIRE_COOLDOWN;
+  playFireballSound();
+}
+
+function createStandardFireball(centerX, centerY, angle) {
+  if (player.character !== 'sinbad' && player.attackTimer > 0) {
+    player.attackTimer = 0;
+    player.attackAnimTime = 0;
+  }
+
   const speed = 640;
   const size = 26;
   const originDistance = player.width * 0.6;
   const spawnX = centerX + Math.cos(angle) * originDistance - size / 2;
   const spawnY = centerY + Math.sin(angle) * originDistance - size / 2;
 
-  const fireball = {
+  return {
     id: `${network.localPlayerId}-${performance.now().toFixed(3)}`,
     ownerId: network.localPlayerId,
     x: spawnX,
@@ -55,28 +98,40 @@ export function handlePlayerFireball(delta) {
     vy: Math.sin(angle) * speed,
     damage: 1,
     lifetime: FIREBALL_LIFETIME,
+    type: 'fireball',
+    rotation: angle,
+    friendly: true,
   };
+}
 
-  addFireball(fireball);
+function createSinbadWave(centerX, centerY, angle) {
+  const originDistance = player.width * 2.2;
+  const spawnX = centerX + Math.cos(angle) * originDistance - SINBAD_WAVE_WIDTH / 2;
+  const spawnY = centerY + Math.sin(angle) * originDistance - SINBAD_WAVE_HEIGHT / 2;
 
-  if (network.socket) {
-    network.socket.emit('player:shoot', {
-      x: fireball.x,
-      y: fireball.y,
-      vx: fireball.vx,
-      vy: fireball.vy,
-      width: fireball.width,
-      height: fireball.height,
-      damage: fireball.damage,
-      lifetime: fireball.lifetime,
-    });
-  }
+  player.attackTimer = SINBAD_ATTACK_DURATION;
+  player.attackAnimTime = 0;
 
-  player.fireCooldown = 0.45;
-  playFireballSound();
+  return {
+    id: `${network.localPlayerId}-${performance.now().toFixed(3)}`,
+    ownerId: network.localPlayerId,
+    x: spawnX,
+    y: spawnY,
+    width: SINBAD_WAVE_WIDTH,
+    height: SINBAD_WAVE_HEIGHT,
+    vx: Math.cos(angle) * SINBAD_WAVE_SPEED,
+    vy: Math.sin(angle) * SINBAD_WAVE_SPEED,
+    damage: 1,
+    lifetime: SINBAD_WAVE_LIFETIME,
+    type: 'sinbadWave',
+    rotation: angle,
+    friendly: true,
+  };
 }
 
 export function addFireball(data) {
+  const vx = data.vx ?? 0;
+  const vy = data.vy ?? 0;
   fireballs.push({
     id: data.id ?? `${data.ownerId ?? 'fb'}-${Math.random().toString(16).slice(2)}`,
     ownerId: data.ownerId ?? null,
@@ -84,10 +139,13 @@ export function addFireball(data) {
     y: data.y,
     width: data.width ?? 24,
     height: data.height ?? 24,
-    vx: data.vx,
-    vy: data.vy,
+    vx,
+    vy,
     damage: data.damage ?? 1,
     lifetime: data.lifetime ?? FIREBALL_LIFETIME,
+    type: data.type ?? 'fireball',
+    rotation: typeof data.rotation === 'number' ? data.rotation : Math.atan2(vy, vx),
+    friendly: Boolean(data.friendly),
   });
 }
 

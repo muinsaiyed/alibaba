@@ -1,5 +1,5 @@
 import { network, normalizeCharacter, player, remotePlayers } from './state.js';
-import { DASH_TRAIL_INTERVAL, REMOTE_SMOOTHING_RATE, WORLD } from './constants.js';
+import { DASH_TRAIL_INTERVAL, REMOTE_SMOOTHING_RATE, WORLD, SINBAD_ATTACK_DURATION } from './constants.js';
 import { clamp } from './utils.js';
 import { handleRemoteDashTrail } from './dashTrails.js';
 
@@ -16,6 +16,16 @@ export function updateRemotePlayers(delta) {
 
     if (remote.hitFlash > 0) {
       remote.hitFlash = Math.max(0, remote.hitFlash - delta);
+    }
+
+    if (remote.attackTimer > 0) {
+      remote.attackTimer = Math.max(0, remote.attackTimer - delta);
+      remote.attackAnimTime = (remote.attackAnimTime ?? 0) + delta;
+      if (remote.attackTimer === 0) {
+        remote.attackAnimTime = 0;
+      }
+    } else if (remote.anim !== 'attack' && remote.attackAnimTime) {
+      remote.attackAnimTime = 0;
     }
     const offsetX = remote.targetX - remote.x;
     const offsetY = remote.targetY - remote.y;
@@ -47,6 +57,15 @@ export function registerRemotePlayer(data = {}) {
   const incomingX = Number.isFinite(data.x) ? data.x : previous?.targetX ?? previous?.x ?? 140;
   const incomingY = Number.isFinite(data.y) ? data.y : previous?.targetY ?? previous?.y ?? WORLD.groundY - player.height;
   const timestamp = performance.now();
+  const previousAttackTimer = previous?.attackTimer ?? 0;
+  const previousAttackAnimTime = previous?.attackAnimTime ?? 0;
+  const attackActive = anim === 'attack';
+  const attackTimer = attackActive
+    ? (previousAttackTimer > 0 ? previousAttackTimer : SINBAD_ATTACK_DURATION)
+    : 0;
+  const attackAnimTime = attackActive
+    ? (previousAttackTimer > 0 ? previousAttackAnimTime : 0)
+    : 0;
 
   const remote = {
     id: data.id,
@@ -63,6 +82,8 @@ export function registerRemotePlayer(data = {}) {
     height,
     facing,
     anim,
+    attackTimer,
+    attackAnimTime,
     dashTrailInterval: previous?.dashTrailInterval ?? DASH_TRAIL_INTERVAL * 1.1,
     dashTrailTimer: previous?.dashTrailTimer ?? 0,
     dashTrailActive: previous?.dashTrailActive ?? false,

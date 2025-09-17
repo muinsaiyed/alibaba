@@ -62,6 +62,8 @@ export function normalizeCharacter(value) {
 export const assetSources = {
   background: 'assets/cave-background.png',
   ...characterSprites,
+  sinbadAttack: 'assets/sinbadspriteanimation.png',
+  sinbadAttackWave: 'assets/sinbadattackwave.png',
 };
 
 export const images = {};
@@ -132,6 +134,8 @@ export const player = {
   dashTrailInterval: DASH_TRAIL_INTERVAL,
   hitFlash: 0,
   character: DEFAULT_CHARACTER,
+  attackTimer: 0,
+  attackAnimTime: 0,
 };
 
 export const camera = { x: 0, y: 0 };

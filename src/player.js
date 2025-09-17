@@ -50,6 +50,16 @@ export function updateLocalPlayer(delta) {
     player.hitFlash = Math.max(0, player.hitFlash - delta);
   }
 
+  if (player.attackTimer > 0) {
+    player.attackTimer = Math.max(0, player.attackTimer - delta);
+    player.attackAnimTime += delta;
+    if (player.attackTimer === 0) {
+      player.attackAnimTime = 0;
+    }
+  } else if (player.attackAnimTime !== 0) {
+    player.attackAnimTime = 0;
+  }
+
   if (!player.alive) {
     updateDeathPhysics(delta);
     return false;
@@ -115,6 +125,9 @@ export function updateLocalPlayer(delta) {
 export function determinePlayerAnim() {
   if (!player.alive) {
     return 'down';
+  }
+  if (player.attackTimer > 0) {
+    return 'attack';
   }
   if (player.dashTimer > 0) {
     return 'dash';

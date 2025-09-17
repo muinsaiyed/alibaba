@@ -1,5 +1,15 @@
 import { camera, ctx, dashTrails, images, player, remotePlayers, fireballs, view, DEFAULT_CHARACTER } from './state.js';
-import { HIT_FLASH_DURATION, WORLD, backgroundConfig, platforms } from './constants.js';
+import {
+  CHARACTER_RENDER_SCALE,
+  HIT_FLASH_DURATION,
+  SINBAD_ATTACK_DURATION,
+  SINBAD_ATTACK_FRAME_COUNT,
+  SINBAD_ATTACK_FRAMES,
+  SINBAD_ATTACK_HEIGHT_SCALE,
+  WORLD,
+  backgroundConfig,
+  platforms,
+} from './constants.js';
 
 function getCharacterSprite(character) {
   if (typeof character === 'string' && images[character]) {
@@ -83,21 +93,26 @@ function renderDashTrails() {
     const facingScaleX = (trail.facing < 0 ? -1 : 1) * scale;
     const centerX = trail.x + trail.width / 2;
     const centerY = trail.y + trail.height / 2;
+    const renderScale = CHARACTER_RENDER_SCALE[trail.character] ?? 1;
+    const renderWidth = trail.width * renderScale;
+    const renderHeight = trail.height * renderScale;
+    const baselineOffsetY = (renderHeight - trail.height) / 2;
+    const bottomY = centerY - baselineOffsetY + renderHeight / 2;
 
     ctx.save();
     ctx.globalCompositeOperation = 'lighter';
     ctx.globalAlpha = alpha;
     ctx.filter = 'brightness(1.35) saturate(1.08)';
-    ctx.translate(centerX, centerY);
+    ctx.translate(centerX, centerY - baselineOffsetY);
     ctx.scale(facingScaleX, scale);
-    ctx.drawImage(sprite, -trail.width / 2, -trail.height / 2, trail.width, trail.height);
+    ctx.drawImage(sprite, -renderWidth / 2, -renderHeight / 2, renderWidth, renderHeight);
     ctx.restore();
 
     ctx.save();
     ctx.globalAlpha = alpha * 0.45;
     ctx.fillStyle = trail.color || '#f5d76e';
     ctx.beginPath();
-    ctx.ellipse(centerX, trail.y + trail.height - 10, trail.width * 0.5, trail.height * 0.22, 0, 0, Math.PI * 2);
+    ctx.ellipse(centerX, bottomY - 10, renderWidth * 0.5, renderHeight * 0.22, 0, 0, Math.PI * 2);
     ctx.fill();
     ctx.restore();
   }
@@ -154,13 +169,19 @@ function renderHero(sprite, entity, options = {}) {
   ctx.translate(centerX, centerY);
   const animState = options.anim || entity.anim || null;
   const isDashing = animState === 'dash';
+  const renderScale = CHARACTER_RENDER_SCALE[entity.character] ?? 1;
+  const renderWidth = entity.width * renderScale;
+  const renderHeight = entity.height * renderScale;
+  const baselineOffsetY = (renderHeight - entity.height) / 2;
+
+  ctx.translate(0, -baselineOffsetY);
 
   if (options.color) {
     ctx.save();
     ctx.globalAlpha = isAlive ? (options.isLocal ? 0.34 : 0.26) : 0.16;
     ctx.fillStyle = options.color;
     ctx.beginPath();
-    ctx.ellipse(0, entity.height / 2 - 6, entity.width * 0.62, entity.height * 0.36, 0, 0, Math.PI * 2);
+    ctx.ellipse(0, renderHeight / 2 - 6, renderWidth * 0.62, renderHeight * 0.36, 0, 0, Math.PI * 2);
     ctx.fill();
     ctx.restore();
   }
@@ -178,13 +199,20 @@ function renderHero(sprite, entity, options = {}) {
     ctx.globalAlpha = options.opacity;
   }
 
-  ctx.drawImage(
-    sprite,
-    -entity.width / 2,
-    -entity.height / 2,
-    entity.width,
-    entity.height,
-  );
+  let drewCustomSprite = false;
+  if (entity.character === 'sinbad' && animState === 'attack') {
+    drewCustomSprite = renderSinbadAttackSprite(entity, renderWidth, renderHeight);
+  }
+
+  if (!drewCustomSprite) {
+    ctx.drawImage(
+      sprite,
+      -renderWidth / 2,
+      -renderHeight / 2,
+      renderWidth,
+      renderHeight,
+    );
+  }
   if (isDashing) {
     ctx.filter = 'none';
   }
@@ -195,7 +223,7 @@ function renderHero(sprite, entity, options = {}) {
     ctx.globalCompositeOperation = 'source-atop';
     ctx.globalAlpha = Math.min(1, 0.45 + flashStrength * 0.55);
     ctx.fillStyle = 'rgba(255, 60, 32, 1)';
-    ctx.fillRect(-entity.width / 2, -entity.height / 2, entity.width, entity.height);
+    ctx.fillRect(-renderWidth / 2, -renderHeight / 2, renderWidth, renderHeight);
     ctx.restore();
   }
   ctx.restore();
@@ -203,6 +231,45 @@ function renderHero(sprite, entity, options = {}) {
   if (options.name) {
     renderPlayerNameplate(options.name, entity, options.color, isAlive);
   }
+}
+
+function renderSinbadAttackSprite(entity, baseWidth, baseHeight) {
+  const sheet = images.sinbadAttack;
+  if (!sheet || SINBAD_ATTACK_FRAME_COUNT === 0) {
+    return false;
+  }
+
+  const duration = Math.max(0.001, SINBAD_ATTACK_DURATION);
+  const elapsed = Math.max(0, Math.min(entity.attackAnimTime ?? 0, duration));
+  const progress = Math.min(0.999, elapsed / duration);
+  const frameIndex = Math.min(
+    SINBAD_ATTACK_FRAME_COUNT - 1,
+    Math.floor(progress * SINBAD_ATTACK_FRAME_COUNT),
+  );
+  const frame = SINBAD_ATTACK_FRAMES[frameIndex];
+  if (!frame) {
+    return false;
+  }
+
+  const destHeight = baseHeight * SINBAD_ATTACK_HEIGHT_SCALE;
+  const destWidth = destHeight * (frame.sw / frame.sh);
+  const facing = entity.facing < 0 ? -1 : 1;
+  const anchorX = facing < 0 ? 1 - frame.anchorX : frame.anchorX;
+  const destLeft = -destWidth * anchorX;
+  const destTop = baseHeight / 2 - destHeight * frame.anchorY;
+
+  ctx.drawImage(
+    sheet,
+    frame.sx,
+    frame.sy,
+    frame.sw,
+    frame.sh,
+    destLeft,
+    destTop,
+    destWidth,
+    destHeight,
+  );
+  return true;
 }
 
 function renderPlayerNameplate(name, entity, color, isAlive = true) {
@@ -244,6 +311,33 @@ function renderFireballs() {
   for (const fireball of fireballs) {
     const centerX = fireball.x + fireball.width / 2;
     const centerY = fireball.y + fireball.height / 2;
+    if (fireball.type === 'sinbadWave') {
+      const sprite = images.sinbadAttackWave;
+      if (sprite) {
+        ctx.save();
+        ctx.translate(centerX, centerY);
+        const rotation =
+          typeof fireball.rotation === 'number'
+            ? fireball.rotation
+            : Math.atan2(fireball.vy ?? 0, fireball.vx ?? 0);
+        ctx.rotate(rotation);
+        ctx.drawImage(
+          sprite,
+          -fireball.width / 2,
+          -fireball.height / 2,
+          fireball.width,
+          fireball.height,
+        );
+        ctx.restore();
+      } else {
+        const radius = Math.max(fireball.width, fireball.height) / 2;
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(96, 180, 255, 0.55)';
+        ctx.fill();
+      }
+      continue;
+    }
     const radius = fireball.width / 2;
     const gradient = ctx.createRadialGradient(centerX, centerY, 4, centerX, centerY, radius);
     if (fireball.friendly) {

@@ -406,6 +406,12 @@ io.on('connection', (socket) => {
 
     updateActivity(player);
 
+    const projectileType =
+      player.character === 'sinbad' && payload.type === 'sinbadWave'
+        ? 'sinbadWave'
+        : 'fireball';
+    const rotation = Number.isFinite(payload.rotation) ? payload.rotation : undefined;
+
     socket.to(MAIN_ROOM).emit('player:shot', {
       ownerId: socket.id,
       x: payload.x,
@@ -416,6 +422,8 @@ io.on('connection', (socket) => {
       height: payload.height ?? 24,
       damage: payload.damage ?? 1,
       lifetime: payload.lifetime ?? FIREBALL_LIFETIME,
+      type: projectileType,
+      rotation,
     });
   });
 

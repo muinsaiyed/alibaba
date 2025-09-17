@@ -17,6 +17,23 @@ export const COYOTE_TIME = 0.12;
 export const NETWORK_SEND_INTERVAL = 1 / 15;
 export const REMOTE_SMOOTHING_RATE = 12;
 export const FIREBALL_LIFETIME = 0.42;
+export const SINBAD_ATTACK_DURATION = 0.62;
+export const SINBAD_ATTACK_FRAMES = [
+  { sx: 96, sy: 3, sw: 295, sh: 493, anchorX: 0.4983, anchorY: 0.9980 },
+  { sx: 511, sy: 58, sw: 454, sh: 436, anchorX: 0.4989, anchorY: 0.9977 },
+  { sx: 10, sy: 534, sw: 460, sh: 451, anchorX: 0.4989, anchorY: 0.9978 },
+  { sx: 513, sy: 605, sw: 399, sh: 381, anchorX: 0.4987, anchorY: 0.9974 },
+];
+export const SINBAD_ATTACK_FRAME_COUNT = SINBAD_ATTACK_FRAMES.length;
+export const SINBAD_ATTACK_HEIGHT_SCALE = 1.0;
+export const CHARACTER_RENDER_SCALE = {
+  aliBaba: 1,
+  sinbad: 1.12,
+};
+export const SINBAD_WAVE_SPEED = 760;
+export const SINBAD_WAVE_LIFETIME = 0.58;
+export const SINBAD_WAVE_WIDTH = 160;
+export const SINBAD_WAVE_HEIGHT = 84;
 export const HIT_FLASH_DURATION = 0.28;
 
 const localHosts = new Set(['localhost', '127.0.0.1']);

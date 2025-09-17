@@ -1,7 +1,7 @@
 import { updateDashTrails } from './dashTrails.js';
 import { updateNetwork } from './network.js';
 import { updateLocalPlayer } from './player.js';
-import { handlePlayerFireball, updateFireballs } from './projectiles.js';
+import { handlePlayerAttack, updateFireballs } from './projectiles.js';
 import { render } from './rendering.js';
 import { updateRemotePlayers } from './remotePlayers.js';
 import { recalcPointerWorld, updateCamera } from './viewport.js';
@@ -27,7 +27,7 @@ function loop(now) {
 function tick(delta) {
   const alive = updateLocalPlayer(delta);
 
-  handlePlayerFireball(delta);
+  handlePlayerAttack(delta);
   updateFireballs(delta);
   updateRemotePlayers(delta);
   updateDashTrails(delta);

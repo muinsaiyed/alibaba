@@ -11,7 +11,7 @@ import {
   remotePlayers,
   ui,
 } from './state.js';
-import { DASH_TRAIL_INTERVAL, HIT_FLASH_DURATION, NETWORK_SEND_INTERVAL, SOCKET_URL } from './constants.js';
+import { DASH_TRAIL_INTERVAL, HIT_FLASH_DURATION, NETWORK_SEND_INTERVAL, SINBAD_ATTACK_DURATION, SOCKET_URL } from './constants.js';
 import { clearRemotePlayers, getPlayerName, registerRemotePlayer, removeRemotePlayer } from './remotePlayers.js';
 import { hideMessage, showMessage, syncCharacterSelection, updateEnemyCounter, updateHealthUI } from './ui.js';
 
@@ -169,6 +169,8 @@ function handleJoinSubmit(event) {
     player.invuln = 0;
     player.fireCooldown = 0;
     player.hitFlash = 0;
+    player.attackTimer = 0;
+    player.attackAnimTime = 0;
     input.fire = false;
     network.hasJoinedGame = true;
 
@@ -297,6 +299,18 @@ function onPlayerUpdated(data) {
   if (previousAnim !== remote.anim) {
     remote.dashTrailActive = false;
     remote.dashTrailTimer = remote.anim === 'dash' ? 0 : remote.dashTrailInterval ?? DASH_TRAIL_INTERVAL * 1.1;
+    if (remote.character === 'sinbad') {
+      if (remote.anim === 'attack') {
+        remote.attackTimer = SINBAD_ATTACK_DURATION;
+        remote.attackAnimTime = 0;
+      } else if (previousAnim === 'attack') {
+        remote.attackTimer = 0;
+        remote.attackAnimTime = 0;
+      }
+    } else if (previousAnim === 'attack' || remote.attackTimer) {
+      remote.attackTimer = 0;
+      remote.attackAnimTime = 0;
+    }
   }
   remote.lastUpdate = performance.now();
 }
@@ -324,7 +338,22 @@ function onPlayerShot(data = {}) {
     vy: data.vy,
     damage: data.damage,
     lifetime: data.lifetime,
+    type: data.type,
+    rotation: data.rotation,
   });
+
+  if (
+    data.type === 'sinbadWave' &&
+    data.ownerId &&
+    data.ownerId !== network.localPlayerId
+  ) {
+    const remote = remotePlayers.get(data.ownerId);
+    if (remote && remote.character === 'sinbad') {
+      remote.anim = 'attack';
+      remote.attackTimer = SINBAD_ATTACK_DURATION;
+      remote.attackAnimTime = 0;
+    }
+  }
   playFireballSound();
 }
 
@@ -377,6 +406,18 @@ function onPlayerState(data = {}) {
   if (prevAnim !== remote.anim) {
     remote.dashTrailActive = false;
     remote.dashTrailTimer = remote.anim === 'dash' ? 0 : remote.dashTrailInterval ?? DASH_TRAIL_INTERVAL * 1.1;
+    if (remote.character === 'sinbad') {
+      if (remote.anim === 'attack') {
+        remote.attackTimer = SINBAD_ATTACK_DURATION;
+        remote.attackAnimTime = 0;
+      } else if (prevAnim === 'attack') {
+        remote.attackTimer = 0;
+        remote.attackAnimTime = 0;
+      }
+    } else if (prevAnim === 'attack' || remote.attackTimer) {
+      remote.attackTimer = 0;
+      remote.attackAnimTime = 0;
+    }
   }
   remote.lastUpdate = performance.now();
   if (typeof prevHealth === 'number' && remote.health < prevHealth) {
@@ -424,6 +465,8 @@ function onPlayerRespawn(data = {}) {
   player.anim = 'idle';
   fireballs.length = 0;
   player.hitFlash = 0;
+  player.attackTimer = 0;
+  player.attackAnimTime = 0;
   updateHealthUI();
   updateEnemyCounter();
 }
@@ -440,6 +483,8 @@ function onPlayerRespawned(data = {}) {
   const remote = remotePlayers.get(data.id);
   if (remote) {
     remote.hitFlash = 0;
+    remote.attackTimer = 0;
+    remote.attackAnimTime = 0;
   }
   updateEnemyCounter();
 }
@@ -497,6 +542,8 @@ export function returnToLobby({ message, autoHide = true } = {}) {
   resetDashTimers();
   player.hitFlash = 0;
   player.anim = 'idle';
+  player.attackTimer = 0;
+  player.attackAnimTime = 0;
   dashTrails.length = 0;
   fireballs.length = 0;
   updateEnemyCounter();
